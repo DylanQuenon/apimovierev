@@ -14,6 +14,7 @@ use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
@@ -21,6 +22,9 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 #[ApiResource(
     normalizationContext: [
         'groups' => ['users_read']
+    ],
+    denormalizationContext: [
+        "disable_type_enforcement" => true
     ]
 )]
 #[ApiFilter(SearchFilter::class, properties:[
@@ -29,6 +33,9 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
     "username"=>"partial"
 ])]
 #[ApiFilter(OrderFilter::class, properties:["createdAt","username","firstName","username"])]
+
+#[UniqueEntity(fields:["email"], message:"Un utilisateur ayant cette adresse E-mail existe déjà")]
+#[UniqueEntity(fields:["username"], message:"Un utilisateur ayant ce nom d'utilisateur existe déjà")]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
@@ -39,7 +46,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 180)]
     #[Groups(['users_read'])]
-    private ?string $email = null;
+    #[Assert\NotBlank(message: "L'adresse E-mail est obligatoire")]
+    #[Assert\Email(message: "Le format de l'adresse E-mail doit être valide")]
+    private $email = null;
 
     /**
      * @var list<string> The user roles
@@ -52,19 +61,23 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var string The hashed password
      */
     #[ORM\Column]
+    #[Assert\NotBlank(message: "Le mot de passe est obligatoire")]
     private ?string $password = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(['users_read'])]
-    private ?string $firstName = null;
+    #[Assert\NotBlank(message: "Le prénom est obligatoire")]
+    private $firstName = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(['users_read'])]
-    private ?string $lastName = null;
+    #[Assert\NotBlank(message: "Le nom est obligatoire")]
+    private $lastName = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(['users_read'])]
-    private ?string $username = null;
+    #[Assert\NotBlank(message: "Le nom d'utilisateur est obligatoire")]
+    private $username = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['users_read'])]
@@ -84,11 +97,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['users_read'])]
-    private ?string $biography = null;
+    private $biography = null;
 
     #[ORM\Column(type: Types::TEXT)]
     #[Groups(['users_read'])]
-    private ?string $description = null;
+    #[Assert\NotBlank(message: "La description est obligatoire")]
+    #[Assert\Length(min: 50, minMessage:"Votre description doit faire plus de 50 caractères")]
+    private $description = null;
 
        /**
      * Permet de créer un slug automatiquement avec le nom et prénom de l'utilisateur
@@ -200,7 +215,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->firstName;
     }
 
-    public function setFirstName(string $firstName): static
+    public function setFirstName( $firstName): static
     {
         $this->firstName = $firstName;
 
@@ -212,7 +227,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->lastName;
     }
 
-    public function setLastName(string $lastName): static
+    public function setLastName( $lastName): static
     {
         $this->lastName = $lastName;
 
@@ -224,7 +239,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->username;
     }
 
-    public function setUsername(string $username): static
+    public function setUsername( $username): static
     {
         $this->username = $username;
 
@@ -260,7 +275,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTimeInterface $createdAt): static
+    public function setCreatedAt($createdAt): static
     {
         $this->createdAt = $createdAt;
 
